@@ -1,96 +1,87 @@
+import React, { useState } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import { Button } from "@/components/ui/button";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
 
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+// Set the worker for react-pdf
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface ResumePreviewProps {
-  latexCode: string;
+  pdfUrl: string | null;
+  error: string | null;
+  isCompiling: boolean;
 }
 
-const ResumePreview: React.FC<ResumePreviewProps> = ({ latexCode }) => {
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+const ResumePreview: React.FC<ResumePreviewProps> = ({ pdfUrl, error, isCompiling }) => {
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [zoom, setZoom] = useState(1);
 
-  useEffect(() => {
-    if (!latexCode) {
-      setIsLoading(false);
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    // Using a different approach to render LaTeX
-    const renderLatex = async () => {
-      try {
-        // Create form data for POST request
-        const formData = new FormData();
-        
-        // Create a file from the LaTeX code
-        const latexFile = new Blob([latexCode], { type: 'text/plain' });
-        formData.append('file', latexFile, 'resume.tex');
-        
-        // Use LaTeX.Online service with POST request
-        const response = await fetch('https://latexonline.cc/compile?command=pdflatex', {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        
-        // Get the PDF blob from the response
-        const blob = await response.blob();
-        setPdfBlob(blob);
-        
-        // Create a URL from the blob to use in the iframe
-        const url = URL.createObjectURL(blob);
-        setPreviewUrl(url);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error rendering LaTeX:', error);
-        setIsLoading(false);
-      }
-    };
-
-    // Debounce the rendering to avoid too many requests while typing
-    const timeoutId = setTimeout(renderLatex, 1000);
-    return () => {
-      clearTimeout(timeoutId);
-      // Clean up any created object URLs when the component unmounts
-      // or when the preview URL changes
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [latexCode]);
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+  };
 
   return (
-    <Card className="h-full flex flex-col overflow-hidden">
-      <div className="bg-gray-100 border-b border-gray-200 px-4 py-2 text-sm font-medium flex items-center">
-        <span>Resume Preview</span>
+    <div className="p-4 bg-white border rounded shadow h-full overflow-auto">
+      <div className="flex justify-end mb-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setZoom((prev) => Math.min(prev + 0.1, 2))}
+          disabled={!pdfUrl || isCompiling}
+          className="mr-2"
+        >
+          Zoom In
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setZoom((prev) => Math.max(prev - 0.1, 0.5))}
+          disabled={!pdfUrl || isCompiling}
+        >
+          Zoom Out
+        </Button>
       </div>
-      <CardContent className="p-0 flex-1 overflow-auto bg-gray-50">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="w-10 h-10 border-2 border-ats-blue border-t-transparent rounded-full animate-spin mb-2"></div>
-            <p className="text-sm text-gray-500">Rendering preview...</p>
-          </div>
-        ) : !previewUrl ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <p className="text-sm text-gray-500">No content to preview</p>
-          </div>
-        ) : (
-          <iframe 
-            src={previewUrl}
-            className="w-full h-full border-0"
-            title="Resume Preview"
-            sandbox="allow-scripts allow-same-origin"
-            loading="lazy"
-          />
-        )}
-      </CardContent>
-    </Card>
+      {isCompiling ? (
+        <div className="flex flex-col items-center justify-center h-full">
+          <div className="w-8 h-8 border-4 border-ats-blue border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-500">Compiling LaTeX... Please wait.</p>
+        </div>
+      ) : error ? (
+        <div className="text-red-500 p-4">
+          <p className="font-semibold">Compilation Error:</p>
+          <p>{error}</p>
+          <p className="text-sm mt-2">
+            Ensure the LaTeX code includes all required packages (e.g., moderncv) and has no syntax errors. Check the server logs for details.
+          </p>
+        </div>
+      ) : pdfUrl ? (
+        <Document
+          file={pdfUrl}
+          onLoadSuccess={onDocumentLoadSuccess}
+          onLoadError={(error) => console.error("PDF load error:", error)}
+          className="w-full"
+          loading={<p>Loading PDF...</p>}
+        >
+          {numPages ? (
+            Array.from(new Array(numPages), (el, index) => (
+              <Page
+                key={`page_${index + 1}`}
+                pageNumber={index + 1}
+                width={600 * zoom}
+                className="mb-4"
+              />
+            ))
+          ) : (
+            <p>Loading pages...</p>
+          )}
+        </Document>
+      ) : (
+        <div className="flex items-center justify-center h-full">
+          <p className="text-gray-500">No preview available. Please enter valid LaTeX code.</p>
+        </div>
+      )}
+    </div>
   );
 };
 
