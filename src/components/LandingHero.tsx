@@ -16,6 +16,25 @@ const LandingHero = () => {
     }
   };
 
+  // Create separate variants with different transitions
+  const fadeInDelayed1 = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.6, delay: 0.2 } 
+    }
+  };
+
+  const fadeInDelayed2 = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.6, delay: 0.4 } 
+    }
+  };
+
   return (
     <div className="text-center max-w-3xl mx-auto py-8">
       <motion.h1 
@@ -31,7 +50,7 @@ const LandingHero = () => {
         className="text-xl text-gray-700 mb-8"
         initial="hidden"
         animate="visible"
-        variants={{...fadeIn, transition: { delay: 0.2, duration: 0.6 }}}
+        variants={fadeInDelayed1}
       >
         Create professionally formatted, ATS-friendly resumes tailored to the job you want
       </motion.p>
@@ -40,7 +59,7 @@ const LandingHero = () => {
         className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
         initial="hidden"
         animate="visible"
-        variants={{...fadeIn, transition: { delay: 0.4, duration: 0.6 }}}
+        variants={fadeInDelayed2}
       >
         {features.map((feature, index) => (
           <div 
