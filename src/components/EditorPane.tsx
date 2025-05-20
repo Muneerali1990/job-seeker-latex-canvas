@@ -20,8 +20,9 @@ const EditorPane: React.FC<EditorPaneProps> = ({ code, onChange }) => {
         <textarea
           value={code}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full h-full p-4 font-mono text-sm bg-gray-50 border-0 focus:outline-none focus:ring-0 resize-none"
+          className="w-full h-full p-4 font-mono text-sm bg-gray-50 border-0 focus:outline-none focus:ring-0 resize-none overflow-auto"
           spellCheck={false}
+          wrap="off"
         />
       </CardContent>
     </Card>

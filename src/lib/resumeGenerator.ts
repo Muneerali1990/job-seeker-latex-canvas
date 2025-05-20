@@ -3,73 +3,171 @@
  * Resume generator that produces LaTeX code based on job descriptions
  */
 
-// Sample LaTeX templates
-const resumeTemplates = {
-  basic: `\\documentclass[11pt,a4paper]{article}
-\\usepackage[left=0.75in,top=0.6in,right=0.75in,bottom=0.6in]{geometry}
+// The comprehensive LaTeX resume template
+const resumeTemplate = `\\documentclass[letterpaper,11pt]{article}
+
+\\usepackage{latexsym}
+\\usepackage[empty]{fullpage}
 \\usepackage{titlesec}
+\\usepackage{marvosym}
+\\usepackage[usenames,dvipsnames]{color}
+\\usepackage{verbatim}
 \\usepackage{enumitem}
-\\usepackage{hyperref}
-\\usepackage[dvipsnames]{xcolor}
+\\usepackage[hidelinks]{hyperref}
+\\usepackage[english]{babel}
+\\usepackage{tabularx}
+\\usepackage{multicol}
+\\usepackage{graphicx}
+\\setlength{\\multicolsep}{-3.0pt}
+\\setlength{\\columnsep}{-1pt}
 
 % Define colors
-\\definecolor{primary}{RGB}{59, 130, 246}
-\\definecolor{darkgray}{RGB}{107, 114, 128}
+\\definecolor{cvblue}{HTML}{0E5484}
+\\definecolor{black}{HTML}{130810}
+\\definecolor{darkcolor}{HTML}{0F4539}
+\\definecolor{cvgreen}{HTML}{3BD80D}
+\\definecolor{taggreen}{HTML}{00E278}
+\\definecolor{SlateGrey}{HTML}{2E2E2E}
+\\definecolor{LightGrey}{HTML}{666666}
+\\colorlet{name}{black}
+\\colorlet{tagline}{darkcolor}
+\\colorlet{heading}{darkcolor}
+\\colorlet{headingrule}{cvblue}
+\\colorlet{accent}{darkcolor}
+\\colorlet{emphasis}{SlateGrey}
+\\colorlet{body}{LightGrey}
 
-% Custom section formatting
-\\titleformat{\\section}{\\large\\bfseries}{}{0em}{\\color{primary}}[\\titlerule]
-\\titlespacing*{\\section}{0pt}{12pt}{6pt}
+\\addtolength{\\oddsidemargin}{-0.6in}
+\\addtolength{\\evensidemargin}{-0.5in}
+\\addtolength{\\textwidth}{1.19in}
+\\addtolength{\\topmargin}{-.7in}
+\\addtolength{\\textheight}{1.4in}
 
-% Remove page numbers
-\\pagenumbering{gobble}
+\\urlstyle{same}
+
+\\raggedbottom
+\\raggedright
+\\setlength{\\tabcolsep}{0in}
+
+\\titleformat{\\section}{
+  \\vspace{-4pt}\\scshape\\raggedright\\large\\bfseries
+}{}{0em}{}[\\color{black}\\titlerule \\vspace{-5pt}]
+
+\\newcommand{\\resumeItem}[1]{
+  \\item\\small{
+    {#1 \\vspace{-2pt}}
+  }
+}
+
+\\newcommand{\\resumeSubheading}[4]{
+  \\vspace{-2pt}\\item
+    \\begin{tabular*}{1.0\\textwidth}[t]{l@{\\extracolsep{\\fill}}r}
+      \\textbf{\\large#1} & \\textbf{\\small #2} \\\\
+      \\textit{\\large#3} & \\textit{\\small #4} \\\\
+    \\end{tabular*}\\vspace{-7pt}
+}
+
+\\newcommand{\\resumeProjectHeading}[2]{
+    \\item
+    \\begin{tabular*}{1.001\\textwidth}{l@{\\extracolsep{\\fill}}r}
+      \\small#1 & \\textbf{\\small #2}\\\\
+    \\end{tabular*}\\vspace{-7pt}
+}
+
+\\newcommand{\\resumeSubItem}[1]{\\resumeItem{#1}\\vspace{-4pt}}
+
+\\renewcommand\\labelitemi{$\\vcenter{\\hbox{\\tiny$\\bullet$}}$}
+\\renewcommand\\labelitemii{$\\vcenter{\\hbox{\\tiny$\\bullet$}}$}
+
+\\newcommand{\\resumeSubHeadingListStart}{\\begin{itemize}[leftmargin=0.0in, label={}]}
+\\newcommand{\\resumeSubHeadingListEnd}{\\end{itemize}}
+\\newcommand{\\resumeItemListStart}{\\begin{itemize}}
+\\newcommand{\\resumeItemListEnd}{\\end{itemize}\\vspace{-5pt}}
+
+\\newcommand\\sbullet[1][.5]{\\mathbin{\\vcenter{\\hbox{\\scalebox{#1}{$\\bullet$}}}}}
 
 \\begin{document}
 
-\\title{\\textbf{FULL_NAME}}
-\\author{\\href{mailto:EMAIL}{EMAIL} $\\cdot$ PHONE_NUMBER $\\cdot$ LOCATION $\\cdot$ \\href{https://linkedin.com/in/LINKEDIN_ID}{LinkedIn}}
-\\date{}
-\\maketitle
+\\begin{center}
+    {\\Huge \\scshape CANDIDATE_NAME} \\\\ \\vspace{1pt}
+    CANDIDATE_LOCATION (Remote Ready) \\\\ \\vspace{1pt}
+    \\small 
+    \\href{tel:CANDIDATE_PHONE}{\\raisebox{-0.1\\height}\\faPhone\\ \\underline{CANDIDATE_PHONE}} ~
+    \\href{mailto:CANDIDATE_EMAIL}{\\raisebox{-0.2\\height}\\faEnvelope\\ \\underline{CANDIDATE_EMAIL}} ~
+    \\href{https://linkedin.com/in/LINKEDIN_ID}{\\raisebox{-0.2\\height}\\faLinkedinSquare\\ \\underline{linkedin.com/in/LINKEDIN_ID}} ~
+    \\href{https://github.com/GITHUB_ID}{\\raisebox{-0.2\\height}\\faGithub\\ \\underline{github.com/GITHUB_ID}}
+    \\vspace{-8pt}
+\\end{center}
 
-\\section{Summary}
-SUMMARY_TEXT
+\\section{EDUCATION}
+  \\resumeSubHeadingListStart
+    
+    \\resumeSubheading
+      {UNIVERSITY_NAME}{EDUCATION_YEARS}
+      {DEGREE_NAME - \\textbf{GPA}}{}
+    
+  \\resumeSubHeadingListEnd
 
-\\section{Experience}
-\\begin{itemize}[leftmargin=*]
-  \\item \\textbf{COMPANY_NAME}, \\textit{JOB_TITLE} \\hfill \\textit{START_DATE - END_DATE}
-  \\begin{itemize}
-    \\item ACHIEVEMENT_1
-    \\item ACHIEVEMENT_2
-    \\item ACHIEVEMENT_3
-  \\end{itemize}
-\\end{itemize}
+\\section{COURSEWORK / SKILLS}
+    \\begin{multicols}{4}
+        \\begin{itemize}[itemsep=-2pt, parsep=5pt]
+            COURSEWORK_ITEMS
+        \\end{itemize}
+    \\end{multicols}
+    \\vspace*{2.0\\multicolsep}
 
-\\section{Skills}
-\\begin{itemize}[leftmargin=*]
-  \\item \\textbf{Technical}: SKILLS_LIST
-  \\item \\textbf{Soft Skills}: SOFT_SKILLS_LIST
-\\end{itemize}
+\\section{PROJECTS}
+    \\vspace{-5pt}
+    \\resumeSubHeadingListStart
+      
+      \\resumeProjectHeading
+        {\\href{} {\\textbf{\\large{\\underline{PROJECT_1_TITLE}}}}}{}
+        \\resumeItemListStart
+          PROJECT_1_ITEMS
+        \\resumeItemListEnd
+        \\vspace{-13pt}
+      
+      \\resumeProjectHeading
+        {\\href{} {\\textbf{\\large{\\underline{PROJECT_2_TITLE}}}}}{}
+        \\resumeItemListStart
+          PROJECT_2_ITEMS
+        \\resumeItemListEnd
+        \\vspace{-13pt}
+      
+    \\resumeSubHeadingListEnd
+\\vspace{-12pt}
 
-\\section{Education}
-\\begin{itemize}[leftmargin=*]
-  \\item \\textbf{UNIVERSITY_NAME}, \\textit{DEGREE_NAME} \\hfill \\textit{GRADUATION_YEAR}
-  \\begin{itemize}
-    \\item EDUCATION_DETAIL_1
-    \\item EDUCATION_DETAIL_2
-  \\end{itemize}
-\\end{itemize}
+\\section{EXPERIENCE}
+  \\resumeSubHeadingListStart
+    
+    \\resumeSubheading
+      {COMPANY_NAME}{WORK_DATES}
+      {\\underline{JOB_TITLE}}{WORK_LOCATION}
+      \\resumeItemListStart
+        EXPERIENCE_ITEMS
+      \\resumeItemListEnd
+    
+  \\resumeSubHeadingListEnd
+\\vspace{-12pt}
 
-\\end{document}`
-};
+\\section{TECHNICAL SKILLS}
+ \\begin{itemize}[leftmargin=0.15in, label={}]
+    \\small{\\item{
+     \\textbf{\\normalsize{Languages:}}{ \\normalsize{LANGUAGES}} \\\\
+     \\textbf{\\normalsize{Frameworks:}}{ \\normalsize{FRAMEWORKS}} \\\\
+     \\textbf{\\normalsize{Databases:}}{ \\normalsize{DATABASES}} \\\\
+     \\textbf{\\normalsize{Concepts:}}{ \\normalsize{CONCEPTS}}
+    }}
+ \\end{itemize}
+ \\vspace{-15pt}
 
-// Sample placeholder data
-const placeholderData = {
-  name: "Alex Johnson",
-  email: "alex.johnson@example.com",
-  phone: "(555) 123-4567",
-  location: "San Francisco, CA",
-  linkedin: "alexjohnson",
-  website: "alexjohnson.dev"
-};
+\\section{CERTIFICATIONS}
+
+\\sbullet[.75] \\hspace{0.2cm}{\\href{}{CERTIFICATION_1}} \\\\
+\\sbullet[.75] \\hspace{0.2cm}{\\href{}{CERTIFICATION_2}} \\\\
+\\sbullet[.75] \\hspace{0.2cm}{\\href{}{CERTIFICATION_3}}
+
+\\end{document}`;
 
 // Extract keywords from job description
 const extractKeywords = (jobDescription: string) => {
@@ -101,70 +199,63 @@ const extractKeywords = (jobDescription: string) => {
   };
 };
 
-// Generate a summary based on job description
-const generateSummary = (jobDescription: string, keywords: any) => {
-  // In a real implementation, this would use an LLM to generate a summary
-  // For now, we'll create a template-based summary
+// Generate coursework items based on job description
+const generateCourseworkItems = (jobDescription: string, keywords: any) => {
+  const items = [];
   
-  let jobTitle = "Software Engineer";
-  const titles = ["Software Engineer", "Frontend Developer", "Full Stack Developer", "UX Designer", "Product Manager", "Data Scientist"];
-  
-  for (const title of titles) {
-    if (jobDescription.includes(title)) {
-      jobTitle = title;
-      break;
-    }
+  // Add programming languages coursework
+  for (const skill of keywords.skills.slice(0, 6)) {
+    items.push(`\\item ${skill} Programming`);
   }
   
-  const yearsOfExperience = Math.floor(Math.random() * 5) + 3;
-  
-  return `Experienced ${jobTitle} with ${yearsOfExperience}+ years of expertise in ${keywords.skills.slice(0, 3).join(", ")}. Proven track record of delivering high-quality solutions in fast-paced environments. Strong skills in ${keywords.skills.slice(3, 5).join(" and ")} with a passion for creating efficient and scalable applications.`;
-};
-
-// Generate experience based on job description and keywords
-const generateExperience = (jobDescription: string, keywords: any) => {
-  // In a real implementation, this would use an LLM to generate experience
-  // For now, we'll create template-based experiences
-  
-  const experiences = [
-    {
-      company: "TechCorp Industries",
-      title: "Senior Software Engineer",
-      startDate: "Jan 2020",
-      endDate: "Present",
-      achievements: [
-        `Developed and maintained ${keywords.skills[0]} applications that improved user engagement by 45%`,
-        `Led a team of 5 engineers to implement ${keywords.skills[1]} solutions for critical business processes`,
-        `Optimized database queries using ${keywords.skills.find(s => s.includes("SQL")) || "SQL"} resulting in 60% faster application performance`
-      ]
-    },
-    {
-      company: "InnovateSoft",
-      title: "Software Developer",
-      startDate: "Mar 2017",
-      endDate: "Dec 2019",
-      achievements: [
-        `Built responsive web interfaces using ${keywords.skills.find(s => s.includes("React") || s.includes("JavaScript")) || "modern frameworks"}`,
-        `Implemented automated testing that reduced bugs by 35%`,
-        `Collaborated with product managers to refine requirements and deliver features ahead of schedule`
-      ]
-    }
+  // Add some general CS coursework
+  const commonCoursework = [
+    "Data Structures & Algorithms",
+    "Web Development",
+    "Database Systems",
+    "Computer Networks",
+    "Software Engineering",
+    "Object-Oriented Design"
   ];
   
-  return experiences;
+  for (const course of commonCoursework.slice(0, 6 - items.length)) {
+    items.push(`\\item ${course}`);
+  }
+  
+  return items.join('\n');
 };
 
-// Generate education section
-const generateEducation = () => {
-  return {
-    university: "University of Technology",
-    degree: "Bachelor of Science in Computer Science",
-    graduationYear: "2017",
-    details: [
-      "Graduated with honors, 3.8 GPA",
-      "Relevant coursework: Data Structures, Algorithms, Web Development, Database Systems"
-    ]
-  };
+// Generate project items
+const generateProjectItems = (jobDescription: string, keywords: any, projectTitle: string) => {
+  const items = [];
+  const relevantSkills = keywords.skills.slice(0, 3);
+  
+  if (projectTitle.toLowerCase().includes("management")) {
+    items.push(`\\resumeItem{\\normalsize{Designed and developed a CRUD web application using ${relevantSkills[0]} resulting in improved efficiency.}}`);
+    items.push(`\\resumeItem{\\normalsize{Successfully implemented JWT-based authentication resulting in improved security.}}`);
+    items.push(`\\resumeItem{\\normalsize{Designed responsive UI using ${relevantSkills.includes("React") ? "React" : "Bootstrap"} resulting in enhanced user experience.}}`);
+  } else if (projectTitle.toLowerCase().includes("api")) {
+    items.push(`\\resumeItem{\\normalsize{Built RESTful APIs for managing data using ${relevantSkills[0]}.}}`);
+    items.push(`\\resumeItem{\\normalsize{Integrated third-party APIs using ${relevantSkills[0]} libraries.}}`);
+    items.push(`\\resumeItem{\\normalsize{Documented all endpoints with Postman for improved collaboration and maintainability.}}`);
+  } else {
+    items.push(`\\resumeItem{\\normalsize{Developed ${projectTitle} using ${relevantSkills.join(", ")} to solve business challenges.}}`);
+    items.push(`\\resumeItem{\\normalsize{Implemented automated testing resulting in 30% fewer bugs in production.}}`);
+    items.push(`\\resumeItem{\\normalsize{Optimized performance by refactoring code, resulting in 50% faster load times.}}`);
+  }
+  
+  return items.join('\n');
+};
+
+// Generate experience items
+const generateExperienceItems = (jobDescription: string, keywords: any) => {
+  const items = [
+    `\\resumeItem{\\normalsize{Engineered applications using ${keywords.skills.slice(0, 2).join(" and ")}.}}`,
+    `\\resumeItem{\\normalsize{Resolved 10+ bugs, improving code quality and application stability.}}`,
+    `\\resumeItem{\\normalsize{Led team code reviews and contributed to feature development.}}`
+  ];
+  
+  return items.join('\n');
 };
 
 // Main function to generate a resume based on a job description
@@ -172,55 +263,111 @@ export const generateResume = async (jobDescription: string): Promise<string> =>
   // Extract keywords from job description
   const keywords = extractKeywords(jobDescription);
   
-  // Generate summary
-  const summary = generateSummary(jobDescription, keywords);
+  // Define candidate information (using placeholder data)
+  const candidate = {
+    name: "Alex Johnson",
+    location: "San Francisco, CA",
+    phone: "+1-555-123-4567",
+    email: "alex.johnson@example.com",
+    linkedin: "alexjohnson",
+    github: "alexjohnson-dev"
+  };
   
-  // Generate experience
-  const experiences = generateExperience(jobDescription, keywords);
+  // Define education information
+  const education = {
+    university: "University of Technology",
+    years: "2019 -- 2023",
+    degree: "Bachelor of Science in Computer Science",
+    gpa: "3.8/4.0"
+  };
   
-  // Generate education
-  const education = generateEducation();
+  // Define projects
+  const projects = {
+    project1: {
+      title: "Inventory Management System",
+      items: generateProjectItems(jobDescription, keywords, "Inventory Management System")
+    },
+    project2: {
+      title: "API Integration Platform",
+      items: generateProjectItems(jobDescription, keywords, "API Integration Platform")
+    }
+  };
   
-  // Get the template and replace placeholders
-  let resumeLatex = resumeTemplates.basic;
+  // Define work experience
+  const experience = {
+    company: "Tech Innovations Inc.",
+    dates: "Jun 2023 -- Present",
+    title: "Software Developer",
+    location: "Remote",
+    items: generateExperienceItems(jobDescription, keywords)
+  };
   
-  // Replace personal information
-  resumeLatex = resumeLatex
-    .replace("FULL_NAME", placeholderData.name)
-    .replace("EMAIL", placeholderData.email)
-    .replace("PHONE_NUMBER", placeholderData.phone)
-    .replace("LOCATION", placeholderData.location)
-    .replace("LINKEDIN_ID", placeholderData.linkedin);
+  // Define skills
+  const skills = {
+    languages: keywords.skills.filter(skill => 
+      ["JavaScript", "TypeScript", "Python", "Java", "C++", "C#", "Go", "Ruby"].includes(skill)
+    ).join(", ") + ", HTML5, CSS3",
+    frameworks: "React, Node.js, Express, " + keywords.skills.filter(skill => 
+      ["Angular", "Vue", "Django", "Flask", "Spring", "ASP.NET"].includes(skill)
+    ).join(", ") + ", Git",
+    databases: "MySQL, MongoDB, PostgreSQL",
+    concepts: "REST APIs, GraphQL, Microservices, OOP, Data Structures, Algorithms"
+  };
   
-  // Replace summary
-  resumeLatex = resumeLatex.replace("SUMMARY_TEXT", summary);
+  // Define certifications
+  const certifications = [
+    `${keywords.skills[0]} Certification – Udemy, 2023`,
+    `Advanced ${keywords.skills[1]} – Coursera, 2024`,
+    `${keywords.skills[2]} Professional – Industry Certificate`
+  ];
   
-  // Replace experience section
-  let experienceSection = "";
-  experiences.forEach(exp => {
-    experienceSection += `  \\item \\textbf{${exp.company}}, \\textit{${exp.title}} \\hfill \\textit{${exp.startDate} - ${exp.endDate}}\n`;
-    experienceSection += "  \\begin{itemize}\n";
-    exp.achievements.forEach(achievement => {
-      experienceSection += `    \\item ${achievement}\n`;
-    });
-    experienceSection += "  \\end{itemize}\n";
-  });
+  // Generate coursework items
+  const courseworkItems = generateCourseworkItems(jobDescription, keywords);
   
-  resumeLatex = resumeLatex.replace("\\begin{itemize}[leftmargin=*]\n  \\item \\textbf{COMPANY_NAME}, \\textit{JOB_TITLE} \\hfill \\textit{START_DATE - END_DATE}\n  \\begin{itemize}\n    \\item ACHIEVEMENT_1\n    \\item ACHIEVEMENT_2\n    \\item ACHIEVEMENT_3\n  \\end{itemize}\n\\end{itemize}", 
-    `\\begin{itemize}[leftmargin=*]\n${experienceSection}\\end{itemize}`);
-  
-  // Replace skills
-  resumeLatex = resumeLatex
-    .replace("SKILLS_LIST", keywords.skills.join(", "))
-    .replace("SOFT_SKILLS_LIST", keywords.softSkills.join(", "));
-  
-  // Replace education
-  resumeLatex = resumeLatex
+  // Replace template placeholders with actual content
+  let resumeLatex = resumeTemplate
+    // Replace personal information
+    .replace("CANDIDATE_NAME", candidate.name)
+    .replace("CANDIDATE_LOCATION", candidate.location)
+    .replace("CANDIDATE_PHONE", candidate.phone)
+    .replace("CANDIDATE_EMAIL", candidate.email)
+    .replace("LINKEDIN_ID", candidate.linkedin)
+    .replace("GITHUB_ID", candidate.github)
+    
+    // Replace education
     .replace("UNIVERSITY_NAME", education.university)
+    .replace("EDUCATION_YEARS", education.years)
     .replace("DEGREE_NAME", education.degree)
-    .replace("GRADUATION_YEAR", education.graduationYear)
-    .replace("EDUCATION_DETAIL_1", education.details[0])
-    .replace("EDUCATION_DETAIL_2", education.details[1]);
+    .replace("GPA", education.gpa)
+    
+    // Replace coursework
+    .replace("COURSEWORK_ITEMS", courseworkItems)
+    
+    // Replace project 1
+    .replace("PROJECT_1_TITLE", projects.project1.title)
+    .replace("PROJECT_1_ITEMS", projects.project1.items)
+    
+    // Replace project 2
+    .replace("PROJECT_2_TITLE", projects.project2.title)
+    .replace("PROJECT_2_ITEMS", projects.project2.items)
+    
+    // Replace experience
+    .replace("COMPANY_NAME", experience.company)
+    .replace("WORK_DATES", experience.dates)
+    .replace("JOB_TITLE", experience.title)
+    .replace("WORK_LOCATION", experience.location)
+    .replace("EXPERIENCE_ITEMS", experience.items)
+    
+    // Replace skills
+    .replace("LANGUAGES", skills.languages)
+    .replace("FRAMEWORKS", skills.frameworks)
+    .replace("DATABASES", skills.databases)
+    .replace("CONCEPTS", skills.concepts)
+    
+    // Replace certifications
+    .replace("CERTIFICATION_1", certifications[0])
+    .replace("CERTIFICATION_2", certifications[1])
+    .replace("CERTIFICATION_3", certifications[2]);
   
   return resumeLatex;
 };

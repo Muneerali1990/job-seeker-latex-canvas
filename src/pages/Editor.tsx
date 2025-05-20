@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 import EditorPane from "@/components/EditorPane";
 import ResumePreview from "@/components/ResumePreview";
-import { ArrowLeft, Download, Save } from "lucide-react";
+import { ArrowLeft, Download, RefreshCw } from "lucide-react";
 import { generateResume } from "@/lib/resumeGenerator";
 
 interface LocationState {
@@ -54,6 +54,29 @@ const Editor = () => {
     setLatexCode(newCode);
   };
 
+  const handleRegenerateResume = async () => {
+    if (!jobDescription) return;
+    
+    setIsGenerating(true);
+    try {
+      const generatedResume = await generateResume(jobDescription);
+      setLatexCode(generatedResume);
+      toast({
+        title: "Resume Regenerated",
+        description: "Your ATS-optimized resume has been updated",
+      });
+    } catch (error) {
+      console.error("Failed to regenerate resume:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to regenerate resume. Please try again.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleDownload = () => {
     const element = document.createElement("a");
     const file = new Blob([latexCode], { type: "text/plain" });
@@ -88,7 +111,17 @@ const Editor = () => {
             <Button
               variant="outline"
               className="flex items-center gap-2"
+              onClick={handleRegenerateResume}
+              disabled={isGenerating}
+            >
+              <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+              <span>Regenerate</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
               onClick={handleDownload}
+              disabled={isGenerating || !latexCode}
             >
               <Download className="w-4 h-4" />
               <span>Download</span>
@@ -111,10 +144,10 @@ const Editor = () => {
                 <TabsTrigger value="editor" className="flex-1">LaTeX Editor</TabsTrigger>
                 <TabsTrigger value="preview" className="flex-1">Resume Preview</TabsTrigger>
               </TabsList>
-              <TabsContent value="editor">
+              <TabsContent value="editor" className="h-[70vh]">
                 <EditorPane code={latexCode} onChange={handleCodeChange} />
               </TabsContent>
-              <TabsContent value="preview">
+              <TabsContent value="preview" className="h-[70vh]">
                 <ResumePreview latexCode={latexCode} />
               </TabsContent>
             </Tabs>
