@@ -9,6 +9,7 @@ interface ResumePreviewProps {
 const ResumePreview: React.FC<ResumePreviewProps> = ({ latexCode }) => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
   useEffect(() => {
     if (!latexCode) {
@@ -18,17 +19,32 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ latexCode }) => {
     
     setIsLoading(true);
     
-    // Using LaTeX.Online service to render the LaTeX code
+    // Using a different approach to render LaTeX
     const renderLatex = async () => {
       try {
-        // Encode the LaTeX code for use in a URL
-        const encodedLatex = encodeURIComponent(latexCode);
+        // Create form data for POST request
+        const formData = new FormData();
         
-        // Use LaTeX.Online service to render the PDF
-        // The service returns a PDF that we can embed
-        const url = `https://latexonline.cc/compile?text=${encodedLatex}&command=pdflatex&download=resume.pdf`;
+        // Create a file from the LaTeX code
+        const latexFile = new Blob([latexCode], { type: 'text/plain' });
+        formData.append('file', latexFile, 'resume.tex');
         
-        // Set the URL for the iframe to display
+        // Use LaTeX.Online service with POST request
+        const response = await fetch('https://latexonline.cc/compile?command=pdflatex', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} ${response.statusText}`);
+        }
+        
+        // Get the PDF blob from the response
+        const blob = await response.blob();
+        setPdfBlob(blob);
+        
+        // Create a URL from the blob to use in the iframe
+        const url = URL.createObjectURL(blob);
         setPreviewUrl(url);
         setIsLoading(false);
       } catch (error) {
@@ -39,7 +55,14 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ latexCode }) => {
 
     // Debounce the rendering to avoid too many requests while typing
     const timeoutId = setTimeout(renderLatex, 1000);
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      // Clean up any created object URLs when the component unmounts
+      // or when the preview URL changes
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
   }, [latexCode]);
 
   return (
