@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/components/ui/use-toast";
-import EditorPane from "@/components/EditorPane";
-import ResumePreview from "@/components/ResumePreview";
-import { ArrowLeft, Download, RefreshCw } from "lucide-react";
-import { saveAs } from "file-saver";
-import axios from "axios";
-import PptxGenJS from "pptxgenjs";
-import debounce from "lodash.debounce";
+'use client';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
+import ResumePreview from '@/components/ResumePreview';
+import { ArrowLeft, Download, RefreshCw } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
+import axios from 'axios';
 
 interface LocationState {
   jobDescription: string;
@@ -24,40 +21,43 @@ interface LocationState {
   };
 }
 
-const Editor = () => {
+const ResumeViewer = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { jobDescription, userData } = (location.state as LocationState) || { jobDescription: "", userData: null };
-  const [latexCode, setLatexCode] = useState("");
+  const { jobDescription, userData } = (location.state as LocationState) || { jobDescription: '', userData: null };
+  const [htmlContent, setHtmlContent] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-  const [isCompiling, setIsCompiling] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   useEffect(() => {
     if (!jobDescription || !userData) {
-      navigate("/");
+      navigate('/');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Missing job description or user data. Redirecting to home.',
+      });
       return;
     }
 
     const generateInitialResume = async () => {
       setIsGenerating(true);
       try {
-        const response = await axios.post("http://localhost:3001/api/generate-resume", {
+        const response = await axios.post('http://localhost:3001/api/generate-resume', {
           userData,
           jobDescription,
         });
-        setLatexCode(response.data.latexCode);
+        setHtmlContent(response.data.htmlCode);
         toast({
-          title: "Resume Generated",
-          description: "Your ATS-optimized resume has been created",
+          title: 'Resume Generated',
+          description: 'Your ATS-optimized resume has been created successfully.',
         });
       } catch (error: any) {
-        console.error("Failed to generate resume:", error);
+        console.error('Failed to generate resume:', error);
         toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.response?.data?.error || "Failed to generate resume. Please try again.",
+          variant: 'destructive',
+          title: 'Error',
+          description: error.response?.data?.error || 'Failed to generate resume. Please try again.',
         });
       } finally {
         setIsGenerating(false);
@@ -67,257 +67,134 @@ const Editor = () => {
     generateInitialResume();
   }, [jobDescription, userData, navigate]);
 
-  // Debounced function to update preview
-  const updatePreview = useCallback(
-    debounce(async (code: string) => {
-      if (!code) {
-        setPdfUrl(null);
-        setPreviewError(null);
-        return;
-      }
-      setIsCompiling(true);
-      try {
-        const response = await axios.post(
-          "http://localhost:3001/api/compile-latex",
-          { latexCode: code },
-          { responseType: "blob", headers: { "Content-Type": "application/json" } }
-        );
-        const pdfBlob = new Blob([response.data], { type: "application/pdf" });
-        const newPdfUrl = URL.createObjectURL(pdfBlob);
-        setPdfUrl((prev) => {
-          if (prev) URL.revokeObjectURL(prev);
-          return newPdfUrl;
-        });
-        setPreviewError(null);
-      } catch (error: any) {
-        console.error("Failed to update preview:", error);
-        const errorMessage = error.response?.data?.error || "Failed to compile LaTeX. Check for syntax errors or missing packages.";
-        setPreviewError(errorMessage);
-        setPdfUrl(null);
-      } finally {
-        setIsCompiling(false);
-      }
-    }, 1000),
-    []
-  );
-
-  useEffect(() => {
-    updatePreview(latexCode);
-    return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    };
-  }, [latexCode, updatePreview, pdfUrl]);
-
-  const handleCodeChange = (newCode: string) => {
-    setLatexCode(newCode);
-  };
-
   const handleRegenerateResume = async () => {
     if (!jobDescription || !userData) return;
 
     setIsGenerating(true);
     try {
-      const response = await axios.post("http://localhost:3001/api/generate-resume", {
+      const response = await axios.post('http://localhost:3001/api/generate-resume', {
         userData,
         jobDescription,
       });
-      setLatexCode(response.data.latexCode);
+      setHtmlContent(response.data.htmlCode);
       toast({
-        title: "Resume Regenerated",
-        description: "Your ATS-optimized resume has been updated",
+        title: 'Resume Regenerated',
+        description: 'Your ATS-optimized resume has been updated successfully.',
       });
     } catch (error: any) {
-      console.error("Failed to regenerate resume:", error);
+      console.error('Failed to regenerate resume:', error);
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.response?.data?.error || "Failed to regenerate resume. Please try again.",
+        variant: 'destructive',
+        title: 'Error',
+        description: error.response?.data?.error || 'Failed to regenerate resume. Please try again.',
       });
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleDownloadLatex = () => {
-    const element = document.createElement("a");
-    const file = new Blob([latexCode], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = "resume.tex";
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-
-    toast({
-      title: "LaTeX Downloaded",
-      description: "Your resume LaTeX file has been downloaded.",
-    });
-  };
-
   const handleDownloadPDF = async () => {
+    if (!htmlContent) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No resume content to convert to PDF.',
+      });
+      return;
+    }
+
+    setIsExportingPDF(true);
     try {
-      const response = await axios.post(
-        "http://localhost:3001/api/compile-latex",
-        { latexCode },
-        { responseType: "blob" }
-      );
-      const pdfBlob = new Blob([response.data], { type: "application/pdf" });
-      saveAs(pdfBlob, "resume.pdf");
+      const previewElement = document.getElementById('resume-preview');
+      if (!previewElement) {
+        throw new Error('Preview element not found.');
+      }
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: 'resume.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      };
+
+      await html2pdf().from(previewElement).set(opt).save();
       toast({
-        title: "PDF Downloaded",
-        description: "Your resume has been downloaded as a PDF.",
+        title: 'PDF Downloaded',
+        description: 'Your resume has been downloaded as a PDF.',
       });
-    } catch (error) {
-      console.error("Failed to generate PDF:", error);
+    } catch (error: any) {
+      console.error('Failed to generate PDF:', error);
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to generate PDF. Please try again.",
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to generate PDF. Please try again.',
       });
+    } finally {
+      setIsExportingPDF(false);
     }
-  };
-
-  const handleDownloadPPT = async () => {
-    try {
-      const pptx = new PptxGenJS();
-      const slide = pptx.addSlide();
-      const content = parseLatexToContent(latexCode);
-
-      slide.addText(content.title, { x: 0.5, y: 0.5, fontSize: 24, color: "363636" });
-      slide.addText(content.sections.join("\n"), {
-        x: 0.5,
-        y: 1.5,
-        fontSize: 18,
-        color: "363636",
-      });
-
-      pptx.writeFile({ fileName: "resume" });
-      toast({
-        title: "PPT Downloaded",
-        description: "Your resume has been downloaded as a PPT.",
-      });
-    } catch (error) {
-      console.error("Failed to generate PPT:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to generate PPT. Please try again.",
-      });
-    }
-  };
-
-  const parseLatexToContent = (latex: string) => {
-    const sections: string[] = [];
-    const titleMatch = latex.match(/\\name\{([^}]+)\}\{([^}]+)\}/) || ["", "My", "Resume"];
-    const sectionMatches = latex.matchAll(/\\section\{([^}]+)\}([\s\S]*?)(?=\\section|\$)/g);
-
-    for (const match of sectionMatches) {
-      const sectionTitle = match[1];
-      const sectionContent = match[2]
-        .split("\n")
-        .filter((line) => line.includes("\\cvitem") || line.includes("\\item"))
-        .map((line) => {
-          const contentMatch = line.match(/\{([^}]+)\}/g);
-          return contentMatch ? contentMatch.map((c) => c.replace(/{|}/g, "")).join(" - ") : "";
-        })
-        .filter(Boolean);
-      sections.push(`${sectionTitle}:\n${sectionContent.join("\n")}`);
-    }
-
-    return {
-      title: `${titleMatch[1]} ${titleMatch[2]}`,
-      sections,
-    };
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 font-sans">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div className="container mx-auto px-4 py-3 max-w-7xl flex justify-between items-center">
           <Button
             variant="ghost"
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-ats-blue"
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Home</span>
           </Button>
-          <div className="text-center flex-1">
-            <h1 className="text-xl font-bold text-gray-800">ATS Resume Editor</h1>
-          </div>
+          <h1 className="text-xl font-semibold text-gray-900">ATS Resume</h1>
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-gray-300 hover:bg-gray-50 transition-colors"
               onClick={handleRegenerateResume}
-              disabled={isGenerating || isCompiling}
+              disabled={isGenerating}
             >
-              <RefreshCw className={`w-4 h-4 ${isGenerating ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
               <span>Regenerate</span>
             </Button>
             <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={handleDownloadLatex}
-              disabled={isGenerating || isCompiling || !latexCode}
-            >
-              <Download className="w-4 h-4" />
-              <span>Download LaTeX</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
+              variant="default"
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 transition-colors"
               onClick={handleDownloadPDF}
-              disabled={isGenerating || isCompiling || !latexCode}
+              disabled={isGenerating || !htmlContent || isExportingPDF}
             >
               <Download className="w-4 h-4" />
-              <span>Download PDF</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={handleDownloadPPT}
-              disabled={isGenerating || isCompiling || !latexCode}
-            >
-              <Download className="w-4 h-4" />
-              <span>Download PPT</span>
+              <span>{isExportingPDF ? 'Exporting...' : 'Download PDF'}</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <main className="container mx-auto px-4 max-w-7xl h-[calc(100vh-64px)] overflow-hidden">
         {isGenerating ? (
-          <div className="flex flex-col items-center justify-center h-[70vh]">
-            <div className="w-16 h-16 border-4 border-ats-blue border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-xl font-medium text-gray-700">Generating your ATS-optimized resume...</p>
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-lg font-medium text-gray-700">Generating your ATS-optimized resume...</p>
             <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
           </div>
         ) : (
-          <div className="lg:hidden mb-6">
-            <Tabs defaultValue="editor">
-              <TabsList className="w-full">
-                <TabsTrigger value="editor" className="flex-1">LaTeX Editor</TabsTrigger>
-                <TabsTrigger value="preview" className="flex-1">Resume Preview</TabsTrigger>
-              </TabsList>
-              <TabsContent value="editor" className="h-[70vh]">
-                <EditorPane code={latexCode} onChange={handleCodeChange} />
-              </TabsContent>
-              <TabsContent value="preview" className="h-[70vh]">
-                <ResumePreview pdfUrl={pdfUrl} error={previewError} isCompiling={isCompiling} />
-              </TabsContent>
-            </Tabs>
+          <div className="flex w-full h-full">
+            <div className="w-full h-full bg-gray-100 flex flex-col">
+              <div className="flex-1 overflow-auto p-4 bg-gray-100 flex justify-center items-start">
+                <div
+                  id="resume-preview"
+                  className="bg-white shadow-lg rounded-lg w-full max-w-[210mm] min-h-[297mm] p-6"
+                >
+                  <ResumePreview htmlContent={htmlContent} isCompiling={false} />
+                </div>
+              </div>
+            </div>
           </div>
         )}
-
-        {!isGenerating && (
-          <div className="hidden lg:grid grid-cols-2 gap-6 h-[80vh]">
-            <EditorPane code={latexCode} onChange={handleCodeChange} />
-            <ResumePreview pdfUrl={pdfUrl} error={previewError} isCompiling={isCompiling} />
-          </div>
-        )}
-      </div>
+      </main>
     </div>
   );
 };
 
-export default Editor;
+export default ResumeViewer;
