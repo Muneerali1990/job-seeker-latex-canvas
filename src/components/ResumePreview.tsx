@@ -1,25 +1,28 @@
+'use client';
 import React, { useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
 import { Button } from "@/components/ui/button";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
-import "react-pdf/dist/esm/Page/TextLayer.css";
-
-// Set the worker for react-pdf
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface ResumePreviewProps {
-  pdfUrl: string | null;
+  htmlContent: string | null;
   error: string | null;
   isCompiling: boolean;
 }
 
-const ResumePreview: React.FC<ResumePreviewProps> = ({ pdfUrl, error, isCompiling }) => {
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [zoom, setZoom] = useState(1);
+const cleanHtmlContent = (html: string | null): string => {
+  if (!html) return '';
+  
+  // Remove markdown code block markers
+  let cleaned = html.replace(/```html|```/g, '');
+  
+  // Remove any remaining HTML comments if needed
+  cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
+  
+  return cleaned.trim();
+};
 
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-  };
+const ResumePreview: React.FC<ResumePreviewProps> = ({ htmlContent, error, isCompiling }) => {
+  const [zoom, setZoom] = useState(1);
+  const cleanedHtmlContent = cleanHtmlContent(htmlContent);
 
   return (
     <div className="p-4 bg-white border rounded shadow h-full overflow-auto">
@@ -28,7 +31,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ pdfUrl, error, isCompilin
           variant="outline"
           size="sm"
           onClick={() => setZoom((prev) => Math.min(prev + 0.1, 2))}
-          disabled={!pdfUrl || isCompiling}
+          disabled={!cleanedHtmlContent || isCompiling}
           className="mr-2"
         >
           Zoom In
@@ -37,7 +40,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ pdfUrl, error, isCompilin
           variant="outline"
           size="sm"
           onClick={() => setZoom((prev) => Math.max(prev - 0.1, 0.5))}
-          disabled={!pdfUrl || isCompiling}
+          disabled={!cleanedHtmlContent || isCompiling}
         >
           Zoom Out
         </Button>
@@ -45,40 +48,31 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ pdfUrl, error, isCompilin
       {isCompiling ? (
         <div className="flex flex-col items-center justify-center h-full">
           <div className="w-8 h-8 border-4 border-ats-blue border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-500">Compiling LaTeX... Please wait.</p>
+          <p className="text-gray-500">Generating resume... This may take a moment.</p>
         </div>
       ) : error ? (
         <div className="text-red-500 p-4">
-          <p className="font-semibold">Compilation Error:</p>
-          <p>{error}</p>
+          <p className="font-semibold">Error:</p>
+          <pre className="text-sm mt-2 whitespace-pre-wrap">{error}</pre>
           <p className="text-sm mt-2">
-            Ensure the LaTeX code includes all required packages (e.g., moderncv) and has no syntax errors. Check the server logs for details.
+            Common issues:
+            <ul className="list-disc pl-4">
+              <li>Invalid HTML structure</li>
+              <li>Missing closing tags</li>
+              <li>Unsupported CSS properties</li>
+              <li>Server-side generation issues</li>
+            </ul>
           </p>
         </div>
-      ) : pdfUrl ? (
-        <Document
-          file={pdfUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={(error) => console.error("PDF load error:", error)}
+      ) : cleanedHtmlContent ? (
+        <div 
           className="w-full"
-          loading={<p>Loading PDF...</p>}
-        >
-          {numPages ? (
-            Array.from(new Array(numPages), (el, index) => (
-              <Page
-                key={`page_${index + 1}`}
-                pageNumber={index + 1}
-                width={600 * zoom}
-                className="mb-4"
-              />
-            ))
-          ) : (
-            <p>Loading pages...</p>
-          )}
-        </Document>
+          style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+          dangerouslySetInnerHTML={{ __html: cleanedHtmlContent }}
+        />
       ) : (
         <div className="flex items-center justify-center h-full">
-          <p className="text-gray-500">No preview available. Please enter valid LaTeX code.</p>
+          <p className="text-gray-500">No preview available. Enter valid HTML to generate a preview.</p>
         </div>
       )}
     </div>
